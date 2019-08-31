@@ -189,7 +189,7 @@ namespace Microsoft.Quantum.Samples.OracleSynthesis {
         for (i in 0..vars) {
             let start = 1 <<< i;
             let code = GrayCode(i);
-            for (j in 0..Length(code) - 1) {
+            for (j in IndexRange(code)) {
                 let (offset, ctrl) = code[j];
                 RFrac(PauliZ, -spectrum[start + offset], vars + 2, qubits[i]);
                 if (i != 0) {
@@ -224,7 +224,7 @@ namespace Microsoft.Quantum.Samples.OracleSynthesis {
             HY(target);
 
             let code = GrayCode(vars);
-            for (j in 0..Length(code) - 1) {
+            for (j in IndexRange(code)) {
                 let (offset, ctrl) = code[j];
                 RFrac(PauliZ, spectrum[offset], vars + 2, target);
                 CNOT(controls[ctrl], target);
@@ -243,7 +243,7 @@ namespace Microsoft.Quantum.Samples.OracleSynthesis {
                 for (i in 0..vars - 1) {
                     let start = 1 <<< i;
                     let code = GrayCode(i);
-                    for (j in 0..Length(code) - 1) {
+                    for (j in IndexRange(code)) {
                         let (offset, ctrl) = code[j];
                         RFrac(PauliZ, -spectrum[start + offset], vars + 1, controls[i]);
                         if (i != 0) {
@@ -285,13 +285,15 @@ namespace Microsoft.Quantum.Samples.OracleSynthesis {
         mutable result = true;
         let tableBits = TruthTable(func, vars);
 
-        for (x in 0..Length(tableBits) - 1) {
+        for (x in IndexRange(tableBits)) {
             using (qubits = Qubit[vars + 2]) {
                 let init = IntAsBoolArray(x, vars);
-                ApplyPauliFromBitString(PauliX, true, init, qubits[0..vars - 1]);
-                OracleCleanTargetQubit(tableBits, qubits[0..vars - 1], qubits[vars]);
-                CNOT(qubits[vars], qubits[vars + 1]);
-                (Adjoint OracleCleanTargetQubit)(tableBits, qubits[0..vars - 1], qubits[vars]);
+                within {
+                    ApplyPauliFromBitString(PauliX, true, init, qubits[0..vars - 1]);
+                    OracleCleanTargetQubit(tableBits, qubits[0..vars - 1], qubits[vars]);
+                } apply {
+                    CNOT(qubits[vars], qubits[vars + 1]);
+                }
 
                 let y = IsResultOne(M(qubits[vars + 1]));
                 if (tableBits[x] != y) {
@@ -300,7 +302,6 @@ namespace Microsoft.Quantum.Samples.OracleSynthesis {
                 if (y) {
                     Reset(qubits[vars + 1]);
                 }
-                ApplyPauliFromBitString(PauliX, true, init, qubits[0..vars - 1]);
             }
         }
 
