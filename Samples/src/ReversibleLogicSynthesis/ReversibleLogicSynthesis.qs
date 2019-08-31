@@ -355,14 +355,20 @@ namespace Microsoft.Quantum.Samples.ReversibleLogicSynthesis {
 
         let n = BitSizeI(Length(perm));
         using (qubits = Qubit[2 * n]) {
-            let Superpos = ApplyToEachA(H, _);
-            let Shift = ApplyShift(shift, _);
-            let Synth = PermutationOracle(perm, TBS, _);
-            let PermX = ApplyToSubregisterA(Synth, RangeAsIntArray(0..n - 1), _);
-            let PermY = ApplyToSubregisterA(Synth, RangeAsIntArray(n..2 * n - 1), _);
-            ApplyWith(BoundA([Superpos, Shift, PermY]), InnerProduct, qubits);
-            ApplyWith(Adjoint PermX, InnerProduct, qubits);
-            Superpos(qubits);
+            within {
+                ApplyToEachA(H, qubits);
+                ApplyShift(shift, qubits);
+                PermutationOracle(perm, TBS, qubits[n..2 * n - 1]);
+            } apply {
+                InnerProduct(qubits);
+            }
+            within {
+                Adjoint PermutationOracle(perm, TBS, qubits[0..n - 1]);
+            } apply {
+                InnerProduct(qubits);
+            }
+            ApplyToEach(H, qubits);
+
             return MeasureInteger(LittleEndian(qubits));
         }
     }
